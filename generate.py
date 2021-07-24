@@ -86,6 +86,22 @@ class CrosswordCreator():
 
         img.save(filename)
 
+    def check_compatibility(self, v1, v2, x, y):
+        """
+        Check if two variables' values are comaptible with 
+        each other (do not have any conflict in the overlaps) 
+        Returns True if they are compatible. Otherwise, it returns False.
+        Also, it returns True if they don't overlap.
+        """
+        overlap = self.crossword.overlaps[v1, v2]
+        if overlap == None:
+            return True
+        x_letter = x[overlap[0]]
+        y_letter = y[overlap[1]]
+        if x_letter == y_letter:
+            return True
+        return False
+
     def solve(self):
         """
         Enforce node and arc consistency, and then solve the CSP.
@@ -166,7 +182,7 @@ class CrosswordCreator():
 
         while len(queue) > 0:
             (x,y) = queue.pop(0)
-            print(f"(X:{x}, Y: {y})")
+            
             if self.revise(x,y):
                 if len(self.domains[x]) == 0:
                     return False
@@ -181,14 +197,33 @@ class CrosswordCreator():
         Return True if `assignment` is complete (i.e., assigns a value to each
         crossword variable); return False otherwise.
         """
-        raise NotImplementedError
+        for variable in self.crossword.variables:
+            if variable not in assignment:
+                return False
+            if not assignment[variable]:
+                return False
+        return True
 
     def consistent(self, assignment):
         """
         Return True if `assignment` is consistent (i.e., words fit in crossword
         puzzle without conflicting characters); return False otherwise.
         """
-        raise NotImplementedError
+        used_words = []
+        for variable in assignment:
+            if assignment[variable] != variable.length:
+                return False
+            if assignment[variable] in used_words:
+                return False
+            used_words += assignment[variable]
+            for neighbor in self.crossword.neighbors(variable).intersection(assignment.keys()):
+                overlap = self.crossword.overlaps[variable, neighbor]
+                if overlap is None:
+                    continue
+                if not self.check_compatibility(variable, neighbor, assignment[variable], assignment[neighbor]):
+                    return False
+        return True
+        
 
     def order_domain_values(self, var, assignment):
         """
