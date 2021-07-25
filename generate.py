@@ -124,8 +124,6 @@ class CrosswordCreator():
                     new_v_domain.append(value)
 
             self.domains[variable] = new_v_domain
-            for value in self.domains[variable]:
-                print(value)
     
 
     def revise(self, x, y):
@@ -232,7 +230,9 @@ class CrosswordCreator():
         The first value in the list, for example, should be the one
         that rules out the fewest values among the neighbors of `var`.
         """
-        raise NotImplementedError
+        ordered_values = []
+        return self.domains[var]
+
 
     def select_unassigned_variable(self, assignment):
         """
@@ -242,7 +242,22 @@ class CrosswordCreator():
         degree. If there is a tie, any of the tied variables are acceptable
         return values.
         """
-        raise NotImplementedError
+        values = float('inf')
+        degree = float('-inf')
+        candidate = None
+        unassigned_variables  = [var for var in self.domains if var not in assignment.keys()]
+        for variable in unassigned_variables:
+            if len(self.domains[variable]) < values:
+                candidate = variable
+                values = len(self.domains[candidate])
+                degree = len(self.crossword.neighbors(candidate))
+            elif len(self.domains[variable]) == values:
+                if len(self.crossword.neighbors(variable)) > len(self.crossword.neighbors(candidate)):
+                    candidate = variable
+                    values = len(self.domains[candidate])
+                    degree = len(self.crossword.neighbors(candidate))
+        return candidate
+
 
     def backtrack(self, assignment):
         """
@@ -253,8 +268,19 @@ class CrosswordCreator():
 
         If no assignment is possible, return None.
         """
-        raise NotImplementedError
-
+        if self.assignment_complete(assignment):return assignment
+        
+        var = self.select_unassigned_variable(assignment)
+        for value in self.order_domain_values(var, assignment):
+            
+            new_assignment = assignment.copy()
+            new_assignment[var] = value
+            if self.consistent(new_assignment):
+                assignment[var] = value
+                result = self.backtrack(assignment)
+                if result is not None: return result
+            assignment.pop(var, None)
+        return None
 
 def main():
 
