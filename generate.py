@@ -136,26 +136,31 @@ class CrosswordCreator():
         False if no revision was made.
         """
         revised = False
-        new_x_domain = []
-
         overlap = self.crossword.overlaps[x,y]
         if overlap is None:
            return False
-
+        
+        trash_values = set()
+        # For every single value in x's domain
         for x_value in self.domains[x]:
-            for y_value in self.domains[y]:
-                
-                try:
-                    x_letter = x_value[overlap[0]]
-                    y_letter = y_value[overlap[1]]
-                    if x_letter == y_letter:
-                        new_x_domain += x_value
-                        revised = True
+            # Only keep track of the overlaping letter.
+            x_letter = x_value[overlap[0]]
 
-                except IndexError:
-                    continue
+            # Only keep the letters of the y_values at the overlaping cell.
+            y_letters = [y_value[overlap[1]] for y_value in self.domains[y]]
 
-        self.domains[x] = new_x_domain
+            # Checks if the x_letter (letter at overlap cell) at least shares 
+            # one letter with one of the y_values at the overlaping cell.
+            if x_letter not in y_letters:
+                # If not, then the value is useless and should
+                # be removed from x's domain. 
+                trash_values.add(x_value)
+                revised = True
+        
+        # Removes all the useless values from x's domains
+        for value in trash_values:
+            self.domains[x].remove(value)
+
         return revised
             
 
@@ -170,17 +175,15 @@ class CrosswordCreator():
         return False if one or more domains end up empty.
         """
         queue = []
-
         if arcs is None:
             for v1 in self.crossword.variables:
                 for v2 in self.crossword.neighbors(v1):
                     queue.append((v1,v2))
         else:
             queue = arcs
-
+            
         while len(queue) > 0:
             (x,y) = queue.pop(0)
-            
             if self.revise(x,y):
                 if len(self.domains[x]) == 0:
                     return False
@@ -207,13 +210,15 @@ class CrosswordCreator():
         Return True if `assignment` is consistent (i.e., words fit in crossword
         puzzle without conflicting characters); return False otherwise.
         """
-        used_words = []
+
+        """"This is the function that doesn't work"""
+        used_values = []
         for variable in assignment:
-            if assignment[variable] != variable.length:
+            if len(assignment[variable]) != variable.length:
                 return False
-            if assignment[variable] in used_words:
+            if assignment[variable] in used_values:
                 return False
-            used_words += assignment[variable]
+            used_values += assignment[variable]
             for neighbor in self.crossword.neighbors(variable).intersection(assignment.keys()):
                 overlap = self.crossword.overlaps[variable, neighbor]
                 if overlap is None:
@@ -279,7 +284,6 @@ class CrosswordCreator():
                 assignment[var] = value
                 result = self.backtrack(assignment)
                 if result is not None: return result
-            assignment.pop(var, None)
         return None
 
 def main():
