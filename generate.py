@@ -214,17 +214,22 @@ class CrosswordCreator():
         """"This is the function that doesn't work"""
         used_values = []
         for variable in assignment:
+            
             if len(assignment[variable]) != variable.length:
                 return False
             if assignment[variable] in used_values:
                 return False
-            used_values += assignment[variable]
-            for neighbor in self.crossword.neighbors(variable).intersection(assignment.keys()):
+
+            # Only check the variable neighbors that have a value (the ones that are in assignment)
+            for neighbor in list(set(self.crossword.neighbors(variable) & assignment.keys())):
                 overlap = self.crossword.overlaps[variable, neighbor]
                 if overlap is None:
                     continue
                 if not self.check_compatibility(variable, neighbor, assignment[variable], assignment[neighbor]):
                     return False
+                  
+            used_values += assignment[variable]
+
         return True
         
 
@@ -250,7 +255,8 @@ class CrosswordCreator():
         values = float('inf')
         degree = float('-inf')
         candidate = None
-        unassigned_variables  = [var for var in self.domains if var not in assignment.keys()]
+        # Get only the variables that haven't been assigned (the ones are not in assignment)
+        unassigned_variables  = list(set(self.domains) - set(assignment.keys()))
         for variable in unassigned_variables:
             if len(self.domains[variable]) < values:
                 candidate = variable
@@ -273,7 +279,8 @@ class CrosswordCreator():
 
         If no assignment is possible, return None.
         """
-        if self.assignment_complete(assignment):return assignment
+        if self.assignment_complete(assignment):
+            return assignment
         
         var = self.select_unassigned_variable(assignment)
         for value in self.order_domain_values(var, assignment):
@@ -283,7 +290,8 @@ class CrosswordCreator():
             if self.consistent(new_assignment):
                 assignment[var] = value
                 result = self.backtrack(assignment)
-                if result is not None: return result
+                if result is not None:
+                    return result
         return None
 
 def main():
