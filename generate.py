@@ -86,7 +86,7 @@ class CrosswordCreator():
 
         img.save(filename)
 
-    def check_compatibility(self, v1, v2, x, y):
+    def are_compatible(self, v1, v2, x, y):
         """
         Check if two variables' values are comaptible with 
         each other (do not have any conflict in the overlaps) 
@@ -116,14 +116,16 @@ class CrosswordCreator():
         (Remove any values that are inconsistent with a variable's unary
          constraints; in this case, the length of the word.)
         """
+        # For every variable in the crossword
         for variable in self.domains.keys():
-            new_v_domain = []
-
+            new_var_domain = []
+            # For every value in the variable's domain
             for value in self.domains[variable]:
+                # Only keep the ones that match the variable's length
                 if variable.length == len(value):
-                    new_v_domain.append(value)
-
-            self.domains[variable] = new_v_domain
+                    new_var_domain.append(value)
+            # Update variable's domain
+            self.domains[variable] = new_var_domain
     
 
     def revise(self, x, y):
@@ -211,25 +213,24 @@ class CrosswordCreator():
         puzzle without conflicting characters); return False otherwise.
         """
 
-        """"This is the function that doesn't work"""
         used_values = []
-        for variable in assignment:
-            
+        for variable in assignment.keys():
+            # If the length of the value is not equal to the length of the variable, then return False
             if len(assignment[variable]) != variable.length:
                 return False
+            # If the value has already been used, then return False
             if assignment[variable] in used_values:
                 return False
-
             # Only check the variable neighbors that have a value (the ones that are in assignment)
             for neighbor in list(set(self.crossword.neighbors(variable) & assignment.keys())):
                 overlap = self.crossword.overlaps[variable, neighbor]
                 if overlap is None:
                     continue
-                if not self.check_compatibility(variable, neighbor, assignment[variable], assignment[neighbor]):
+                # If they are not compatible (the overlap letter is not the same), then return False
+                if not self.are_compatible(variable, neighbor, assignment[variable], assignment[neighbor]):
                     return False
-                  
-            used_values += assignment[variable]
-
+            # Add value to the list of used values
+            used_values.append(assignment[variable])
         return True
         
 
@@ -240,8 +241,17 @@ class CrosswordCreator():
         The first value in the list, for example, should be the one
         that rules out the fewest values among the neighbors of `var`.
         """
-        ordered_values = []
-        return self.domains[var]
+        values = {}
+        unassigned_neighbors = list(set(self.crossword.neighbors(var)) - set(assignment.keys()))
+        for x in self.domains[var]:
+            values[x] = 0
+            for neighbor in unassigned_neighbors:
+                for y in self.domains[neighbor]:
+                    if not self.are_compatible(var, neighbor, x, y):
+                        values[x] += 1
+        ordered_values = dict(sorted(values.items(), key=lambda item: item[1]))
+        ordered_values = list(ordered_values.keys())
+        return ordered_values
 
 
     def select_unassigned_variable(self, assignment):
