@@ -1,2 +1,2 @@
 # Crossword-CS50AI 
-AI to generate crossword puzzles.
+AI that generates crossword puzzles.
